@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format, parseISO, getDate } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -14,10 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useUserData } from "@/app/components/lib/useUserData";
+import { updateUserData } from "@/app/components/lib/firebaseUtils";
 
 export default function TransactionHistoryPage() {
-  const { financeData, loading, user } = useUserData();
+  const { financeData, loading, user, saveFinanceData } = useUserData();
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -25,6 +27,17 @@ export default function TransactionHistoryPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [search, setSearch] = useState("");
+
+  const [editing, setEditing] = useState<any | null>(null);
+  const [newAmount, setNewAmount] = useState("");
+  const [newCategory, setNewCategory] = useState("");
+
+  useEffect(() => {
+    if (editing) {
+      setNewAmount(editing.amount.toString());
+      setNewCategory(editing.category);
+    }
+  }, [editing]);
 
   if (loading) return <p className="p-4">Đang tải dữ liệu...</p>;
   if (!user || !financeData) return <p className="p-4">Vui lòng đăng nhập để sử dụng.</p>;
@@ -70,6 +83,33 @@ export default function TransactionHistoryPage() {
 
   const allCategories = Array.from(new Set(all.map((t) => t.category))).filter(Boolean);
 
+  const handleUpdateTransaction = async () => {
+    if (!editing || !user) return;
+    const updated = { ...editing, amount: parseInt(newAmount), category: newCategory };
+
+    const updatedData = { ...financeData };
+    const type = financeData.transactions[selectedMonth].income.find((t: any) => t.id === editing.id) ? 'income' : 'spending';
+    const list = updatedData.transactions[selectedMonth][type];
+    const index = list.findIndex((t: any) => t.id === editing.id);
+    if (index !== -1) list[index] = updated;
+
+    await updateUserData(user.uid, updatedData);
+    saveFinanceData(updatedData);
+    setEditing(null);
+  };
+
+  const handleDeleteTransaction = async () => {
+    if (!editing || !user) return;
+
+    const updatedData = { ...financeData };
+    const type = financeData.transactions[selectedMonth].income.find((t: any) => t.id === editing.id) ? 'income' : 'spending';
+    updatedData.transactions[selectedMonth][type] = updatedData.transactions[selectedMonth][type].filter((t: any) => t.id !== editing.id);
+
+    await updateUserData(user.uid, updatedData);
+    saveFinanceData(updatedData);
+    setEditing(null);
+  };
+
   return (
     <div className="p-4 space-y-4">
       <div className="flex justify-between items-center">
@@ -86,12 +126,8 @@ export default function TransactionHistoryPage() {
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm font-medium px-1">
-        <span className="text-blue-600">
-          Tổng thu {summary.income.toLocaleString()}đ
-        </span>
-        <span className="text-pink-600">
-          Tổng chi {summary.spending.toLocaleString()}đ
-        </span>
+        <span className="text-blue-600">Tổng thu {summary.income.toLocaleString()}đ</span>
+        <span className="text-pink-600">Tổng chi {summary.spending.toLocaleString()}đ</span>
         <span className={cn(net < 0 ? "text-red-500" : "text-green-600")}>Chênh lệch {net.toLocaleString()}đ</span>
       </div>
 
@@ -111,15 +147,9 @@ export default function TransactionHistoryPage() {
             >
               {day}
             </Button>
-            {dayTransactionType[day] === "income" && (
-              <span className="absolute bottom-0 right-0 text-xs">💰</span>
-            )}
-            {dayTransactionType[day] === "spending" && (
-              <span className="absolute bottom-0 right-0 text-xs">💸</span>
-            )}
-            {dayTransactionType[day] === "both" && (
-              <span className="absolute bottom-0 right-0 text-xs">💰💸</span>
-            )}
+            {dayTransactionType[day] === "income" && <span className="absolute bottom-0 right-0 text-xs">💰</span>}
+            {dayTransactionType[day] === "spending" && <span className="absolute bottom-0 right-0 text-xs">💸</span>}
+            {dayTransactionType[day] === "both" && <span className="absolute bottom-0 right-0 text-xs">💰💸</span>}
           </div>
         ))}
       </div>
@@ -141,9 +171,7 @@ export default function TransactionHistoryPage() {
           <SelectContent>
             <SelectItem value="all">Tất cả danh mục</SelectItem>
             {allCategories.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
-              </SelectItem>
+              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -151,40 +179,52 @@ export default function TransactionHistoryPage() {
 
       <div className="space-y-2 mt-2">
         {filteredTransactions.length === 0 ? (
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-            Không có dữ liệu
-          </p>
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">Không có dữ liệu</p>
         ) : (
           filteredTransactions.map((t, idx) => (
-            <Card key={t.id || idx}>
+            <Card key={t.id || idx} onClick={() => setEditing(t)} className="cursor-pointer">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="text-2xl">{(t as any).icon || "💸"}</div>
                 <div className="flex-1">
                   <p className="font-medium">
-                    {t.note ||
-                      (transactions.income.includes(t) ? "Nhận tiền" : "Chi tiêu")}{" "}
-                    {t.category && `(${t.category})`}
+                    {t.note || (transactions.income.includes(t) ? "Nhận tiền" : "Chi tiêu")} {t.category && `(${t.category})`}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    {format(parseISO(t.date), "dd/MM/yyyy")}
-                  </p>
+                  <p className="text-xs text-gray-500">{format(parseISO(t.date), "dd/MM/yyyy")}</p>
                 </div>
-                <div
-                  className={cn(
-                    "font-bold",
-                    transactions.income.includes(t)
-                      ? "text-blue-600"
-                      : "text-pink-600"
-                  )}
-                >
-                  {transactions.income.includes(t) ? "+" : "-"}
-                  {t.amount.toLocaleString()}đ
-                </div>
+                <div className={cn("font-bold", transactions.income.includes(t) ? "text-blue-600" : "text-pink-600")}>{transactions.income.includes(t) ? "+" : "-"}{t.amount.toLocaleString()}đ</div>
               </CardContent>
             </Card>
           ))
         )}
       </div>
+
+      <Dialog open={!!editing} onOpenChange={() => setEditing(null)}>
+        <DialogContent>
+          <DialogTitle>Chỉnh sửa giao dịch</DialogTitle>
+          <div className="space-y-3">
+            <Input
+              type="text"
+              value={newAmount}
+              onChange={(e) => setNewAmount(e.target.value.replace(/\D/g, ""))}
+              placeholder="Số tiền"
+            />
+            <Select value={newCategory} onValueChange={setNewCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Danh mục" />
+              </SelectTrigger>
+              <SelectContent>
+                {allCategories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Button onClick={handleUpdateTransaction} className="flex-1">Lưu thay đổi</Button>
+              <Button variant="destructive" onClick={handleDeleteTransaction} className="flex-1">Xoá</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
