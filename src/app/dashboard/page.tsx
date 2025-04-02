@@ -1,4 +1,4 @@
-/* app/dashboard/page.tsx */
+// @typescript-eslint/no-explicit-any
 'use client';
 
 import { useState, useEffect } from 'react';

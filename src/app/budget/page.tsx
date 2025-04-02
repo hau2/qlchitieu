@@ -1,4 +1,4 @@
-/* app/budget/page.tsx */
+// @typescript-eslint/no-explicit-any
 "use client";
 
 import { useEffect, useState } from "react";
@@ -22,7 +22,10 @@ function isEmojiOnly(input: string): boolean {
 }
 
 export default function BudgetPage() {
-  const [month, setMonth] = useState("2025-04");
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [budgets, setBudgets] = useState<BudgetItem[]>([]);
   const [daysLeft, setDaysLeft] = useState(0);
   const [editMode, setEditMode] = useState<string | null>(null);
