@@ -47,6 +47,7 @@ export default function SettingPage() {
         }
       } catch (_error) {
         alert('Đọc file thất bại');
+        console.log(_error)
       } finally {
         setLoading(false);
       }

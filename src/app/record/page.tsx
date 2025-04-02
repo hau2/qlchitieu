@@ -172,7 +172,7 @@ export default function AddTransactionPage() {
 
         {error && <p className="text-red-500 text-sm -mt-2">{error}</p>}
 
-        <Button className="w-full bg-pink-500 hover:bg-pink-600 text-white border border-pink-500">
+        <Button onClick={handleSave} className="w-full bg-pink-500 hover:bg-pink-600 text-white border border-pink-500">
           {type === "spending" ? "Thêm giao dịch chi" : "Thêm giao dịch thu"}
         </Button>
       </div>
