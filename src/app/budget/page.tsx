@@ -8,6 +8,7 @@ import { format, endOfMonth, differenceInDays } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useUserData } from "@/app/components/lib/useUserData";
 
 interface BudgetItem {
   category: string;
@@ -24,7 +25,10 @@ function isEmojiOnly(input: string): boolean {
 export default function BudgetPage() {
   const [month] = useState(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`;
   });
   const [budgets, setBudgets] = useState<BudgetItem[]>([]);
   const [daysLeft, setDaysLeft] = useState(0);
@@ -33,40 +37,35 @@ export default function BudgetPage() {
   const [editIcon, setEditIcon] = useState<string>("");
   const [iconError, setIconError] = useState<boolean>(false);
 
-  const loadBudgets = () => {
-    const raw = localStorage.getItem("financeData");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const monthBudget = parsed.budgets?.[month] || {};
-      const monthTransactions = parsed.transactions?.[month]?.spending || [];
-
-      const result: BudgetItem[] = Object.entries(monthBudget).map(
-        ([category, data]: any) => {
-          const spent = monthTransactions
-            .filter((t: any) => t.category === category)
-            .reduce((sum: number, t: any) => sum + t.amount, 0);
-          return {
-            category,
-            icon: data.icon || "💰",
-            spent,
-            limit: data.limit || 0,
-          };
-        }
-      );
-
-      setBudgets(result);
-    }
-  };
+  const { financeData, saveFinanceData, user, loading } = useUserData();
 
   useEffect(() => {
-    loadBudgets();
+    if (!financeData) return;
+    const monthBudget = financeData.budgets?.[month] || {};
+    const monthTransactions = financeData.transactions?.[month]?.spending || [];
+
+    const result: BudgetItem[] = Object.entries(monthBudget).map(
+      ([category, data]: any) => {
+        const spent = monthTransactions
+          .filter((t: any) => t.category === category)
+          .reduce((sum: number, t: any) => sum + t.amount, 0);
+        return {
+          category,
+          icon: data.icon || "💰",
+          spent,
+          limit: data.limit || 0,
+        };
+      }
+    );
+
+    setBudgets(result);
 
     const [year, monthNum] = month.split("-");
     const now = new Date();
     const lastDay = endOfMonth(new Date(Number(year), Number(monthNum) - 1));
     const remaining = differenceInDays(lastDay, now);
     setDaysLeft(Math.max(0, remaining));
-  }, [month]);
+  }, [financeData, month]);
 
   const handleEdit = (
     category: string,
@@ -84,36 +83,30 @@ export default function BudgetPage() {
       setIconError(true);
       return;
     }
-
-    const raw = localStorage.getItem("financeData");
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    if (!data.budgets[month][category]) return;
-
-    data.budgets[month][category].limit = parseInt(
+    if (!financeData) return;
+    const copy = { ...financeData };
+    copy.budgets[month][category].limit = parseInt(
       editValue.replace(/\D/g, "")
     );
-    data.budgets[month][category].icon = editIcon;
-    localStorage.setItem("financeData", JSON.stringify(data));
+    copy.budgets[month][category].icon = editIcon;
+    saveFinanceData(copy);
     setEditMode(null);
-    loadBudgets();
   };
 
   const handleDelete = (category: string) => {
     const confirm = window.confirm(`Xoá ngân sách cho danh mục "${category}"?`);
-    if (!confirm) return;
-
-    const raw = localStorage.getItem("financeData");
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    delete data.budgets[month][category];
-    localStorage.setItem("financeData", JSON.stringify(data));
-    loadBudgets();
+    if (!confirm || !financeData) return;
+    const copy = { ...financeData };
+    delete copy.budgets[month][category];
+    saveFinanceData(copy);
   };
 
   const monthLabel = format(new Date(month + "-01"), "MMMM yyyy", {
     locale: vi,
   });
+
+  if (loading) return <p className="p-4">Đang tải dữ liệu...</p>;
+  if (!user) return <p className="p-4">Vui lòng đăng nhập để sử dụng.</p>;
 
   return (
     <div className="p-4 bg-background min-h-screen">

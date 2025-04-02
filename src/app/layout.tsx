@@ -1,8 +1,8 @@
-import ThemeToggle from "@/app/components/ui/ThemeToggle";
 import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import BottomNav from "@/app/components/ui/BottomNav";
+import Header from "@/app/components/ui/Header";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,10 +31,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={`${inter.className} bg-background text-foreground`}>
-        <header className="sticky top-0 z-40 bg-white dark:bg-zinc-900 border-b dark:border-zinc-700 p-4 flex justify-between items-center">
-          <h1 className="text-lg font-semibold">Save My Money</h1>
-          <ThemeToggle />
-        </header>
+        <Header />
 
         <main className="pb-20">{children}</main>
 

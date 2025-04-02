@@ -1,11 +1,17 @@
-/* app/budget/add/page.tsx */
-'use client';
+"use client";
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useUserData } from '@/app/components/lib/useUserData';
 
 const ICON_OPTIONS = [
   { label: '🚗 Xe', value: '🚗' },
@@ -18,6 +24,8 @@ const ICON_OPTIONS = [
 
 export default function AddBudgetPage() {
   const router = useRouter();
+  const { financeData, saveFinanceData, user, loading } = useUserData();
+
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -32,20 +40,23 @@ export default function AddBudgetPage() {
   };
 
   const handleSubmit = () => {
-    if (!category || !limit) return;
+    console.log(category, limit, financeData);
+    
+    if (!category || !limit || !financeData) return;
 
-    const raw = localStorage.getItem('financeData');
-    const data = raw ? JSON.parse(raw) : { budgets: {}, transactions: {} };
-
-    if (!data.budgets[month]) data.budgets[month] = {};
-    data.budgets[month][category] = {
+    const copy = { ...financeData };
+    if (!copy.budgets[month]) copy.budgets[month] = {};
+    copy.budgets[month][category] = {
       limit: parseInt(limit.replace(/\D/g, '')),
-      icon
+      icon,
     };
 
-    localStorage.setItem('financeData', JSON.stringify(data));
+    saveFinanceData(copy);
     router.push('/budget');
   };
+
+  if (loading) return <p className="p-4">Đang tải dữ liệu...</p>;
+  if (!user) return <p className="p-4">Vui lòng đăng nhập để sử dụng.</p>;
 
   return (
     <div className="p-4">
@@ -95,7 +106,10 @@ export default function AddBudgetPage() {
           </Select>
         </div>
 
-        <Button onClick={handleSubmit} className="w-full bg-pink-500 hover:bg-pink-600 text-white">
+        <Button
+          onClick={handleSubmit}
+          className="w-full bg-pink-500 hover:bg-pink-600 text-white"
+        >
           Lưu ngân sách
         </Button>
 

@@ -6,18 +6,20 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useUserData } from '@/app/components/lib/useUserData';
+import { updateUserData } from '@/app/components/lib/firebaseUtils';
 
 export default function SettingPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [jsonPreview, setJsonPreview] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { user, financeData, saveFinanceData } = useUserData();
 
   const handleExport = () => {
-    const raw = localStorage.getItem('financeData');
-    if (!raw) return alert('Không có dữ liệu để xuất');
+    if (!financeData) return alert('Không có dữ liệu để xuất');
 
-    const blob = new Blob([raw], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(financeData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -28,17 +30,18 @@ export default function SettingPage() {
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     setLoading(true);
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const result = event.target?.result;
         if (typeof result === 'string') {
           const parsed = JSON.parse(result);
           if (parsed && parsed.budgets && parsed.transactions) {
-            localStorage.setItem('financeData', result);
+            await updateUserData(user.uid, parsed);
+            saveFinanceData(parsed);
             alert('Nhập dữ liệu thành công');
             router.push('/');
           } else {
@@ -47,7 +50,7 @@ export default function SettingPage() {
         }
       } catch (_error) {
         alert('Đọc file thất bại');
-        console.log(_error)
+        console.log(_error);
       } finally {
         setLoading(false);
       }
@@ -55,21 +58,20 @@ export default function SettingPage() {
     reader.readAsText(file);
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     const confirmReset = confirm('Bạn có chắc muốn xoá toàn bộ dữ liệu không?');
-    if (!confirmReset) return;
+    if (!confirmReset || !user) return;
+
     setLoading(true);
-    setTimeout(() => {
-      localStorage.removeItem('financeData');
-      alert('Đã xoá dữ liệu. Trang sẽ được tải lại.');
-      location.reload();
-    }, 500);
+    await updateUserData(user.uid, {});
+    saveFinanceData({});
+    alert('Đã xoá dữ liệu. Trang sẽ được tải lại.');
+    location.reload();
   };
 
   const handlePreview = () => {
-    const raw = localStorage.getItem('financeData');
-    if (raw) {
-      setJsonPreview(JSON.stringify(JSON.parse(raw), null, 2));
+    if (financeData) {
+      setJsonPreview(JSON.stringify(financeData, null, 2));
     } else {
       alert('Không có dữ liệu để xem');
     }
@@ -95,7 +97,7 @@ export default function SettingPage() {
 
         <Button variant="outline" onClick={handlePreview} disabled={loading}>👀 Xem dữ liệu hiện tại</Button>
         {jsonPreview && (
-          <Textarea value={jsonPreview} readOnly rows={20} className="w-full text-xs bg-gray-100" />
+          <Textarea value={jsonPreview} readOnly rows={20} className="w-full text-xs bg-gray-100 dark:bg-gray-900" />
         )}
       </div>
       <footer className="pt-8 text-center text-xs text-muted-foreground">

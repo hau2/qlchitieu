@@ -1,54 +1,50 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client"
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { EyeIcon, Scissors, Car, Receipt, Gift } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { useUserData } from '@/app/components/lib/useUserData';
 
 const COLORS = ['#ec4899', '#60a5fa', '#4ade80'];
-
 
 const iconMap = {
   Scissors: <Scissors className="w-4 h-4 text-pink-500" />,
   Car: <Car className="w-4 h-4 text-blue-500" />,
   Receipt: <Receipt className="w-4 h-4 text-green-500" />,
-  Gift: <Gift className="w-4 h-4 text-purple-500" />
+  Gift: <Gift className="w-4 h-4 text-purple-500" />,
 } as unknown as any;
 
 export default function DashboardOverview() {
+  const { financeData, loading, user } = useUserData();
   const [viewAmount, setViewAmount] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0'); // getMonth() trả về 0-11
+    const month = String(now.getMonth() + 1).padStart(2, '0');
     return `${year}-${month}`;
   });
-  const [data, setData] = useState<any>();
-
-  useEffect(() => {
-    const stored = localStorage.getItem('financeData');
-    if (stored) {
-      setData(JSON.parse(stored));
-    }
-  }, []);
 
   const toggleView = () => setViewAmount(!viewAmount);
 
-  const current = data?.transactions?.[selectedMonth] || { spending: [], income: [] };
+  if (!user) return <p className="p-4">Vui lòng đăng nhập để xem báo cáo.</p>;
+  if (loading) return <p className="p-4">Đang tải dữ liệu...</p>;
+
+  const current = financeData?.transactions?.[selectedMonth] || { spending: [], income: [] };
 
   const spendingData = current.spending.map((item: any) => ({
     name: item.category,
     value: item.amount,
-    icon: iconMap[item.icon] || null
+    icon: iconMap[item.icon] || null,
   }));
 
   const incomeData = current.income.map((item: any) => ({
     name: item.category,
     value: item.amount,
-    icon: iconMap[item.icon] || null
+    icon: iconMap[item.icon] || null,
   }));
 
   const totalSpending = spendingData.reduce((sum: number, item: any) => sum + item.value, 0);
@@ -60,17 +56,22 @@ export default function DashboardOverview() {
         const percent = ((entry.value / total) * 100).toFixed(1);
         return (
           <li key={`legend-${index}`} className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
+            <span
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: COLORS[index % COLORS.length] }}
+            ></span>
             {entry.icon}
             <span className="flex-1">{entry.name}</span>
-            <span className="text-right">{entry.value.toLocaleString()}đ ({percent}%)</span>
+            <span className="text-right">
+              {entry.value.toLocaleString()}đ ({percent}%)
+            </span>
           </li>
         );
       })}
     </ul>
   );
 
-  const renderLabelPercent = ({ percent }: {percent: number}) => `${(percent * 100).toFixed(0)}%`;
+  const renderLabelPercent = ({ percent }: { percent: number }) => `${(percent * 100).toFixed(0)}%`;
 
   return (
     <div className="p-4 space-y-4">
@@ -81,7 +82,7 @@ export default function DashboardOverview() {
             type="month"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="text-sm border border-gray-300 rounded px-2 py-1"
+            className="text-sm border border-gray-300 rounded px-2 py-1 dark:bg-gray-900 dark:text-white"
           />
           <Button variant="ghost" size="icon" onClick={toggleView}>
             <EyeIcon className="w-5 h-5" />

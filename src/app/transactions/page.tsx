@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { format, parseISO, getDate } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -14,26 +14,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useUserData } from "@/app/components/lib/useUserData";
 
 export default function TransactionHistoryPage() {
-  const [data, setData] = useState<any>({ transactions: {} });
+  const { financeData, loading, user } = useUserData();
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    const raw = localStorage.getItem("financeData");
-    if (raw) setData(JSON.parse(raw));
-  }, []);
+  if (loading) return <p className="p-4">Đang tải dữ liệu...</p>;
+  if (!user || !financeData) return <p className="p-4">Vui lòng đăng nhập để sử dụng.</p>;
 
-  const transactions = data.transactions[selectedMonth] || {
+  const transactions = financeData.transactions[selectedMonth] || {
     spending: [],
     income: [],
   };
@@ -45,7 +41,6 @@ export default function TransactionHistoryPage() {
     income: transactions.income.reduce((sum: number, t: any) => sum + t.amount, 0),
     spending: transactions.spending.reduce((sum: number, t: any) => sum + t.amount, 0),
   };
-
   const net = summary.income - summary.spending;
 
   const daysInMonth = new Date(
@@ -67,19 +62,13 @@ export default function TransactionHistoryPage() {
   });
 
   const filteredTransactions = all.filter((t) => {
-    const matchesDay = selectedDay
-      ? getDate(parseISO(t.date)) === selectedDay
-      : true;
-    const matchesCategory = categoryFilter
-      ? t.category === categoryFilter
-      : true;
+    const matchesDay = selectedDay ? getDate(parseISO(t.date)) === selectedDay : true;
+    const matchesCategory = categoryFilter ? t.category === categoryFilter : true;
     const matchesSearch = t.note?.toLowerCase().includes(search.toLowerCase());
     return matchesDay && matchesCategory && matchesSearch;
   });
 
-  const allCategories = Array.from(new Set(all.map((t) => t.category))).filter(
-    Boolean
-  );
+  const allCategories = Array.from(new Set(all.map((t) => t.category))).filter(Boolean);
 
   return (
     <div className="p-4 space-y-4">
@@ -103,9 +92,7 @@ export default function TransactionHistoryPage() {
         <span className="text-pink-600">
           Tổng chi {summary.spending.toLocaleString()}đ
         </span>
-        <span className={cn(net < 0 ? "text-red-500" : "text-green-600")}>
-          Chênh lệch {net.toLocaleString()}đ
-        </span>
+        <span className={cn(net < 0 ? "text-red-500" : "text-green-600")}>Chênh lệch {net.toLocaleString()}đ</span>
       </div>
 
       <div className="grid grid-cols-7 gap-2 text-center mt-4">
@@ -164,18 +151,18 @@ export default function TransactionHistoryPage() {
 
       <div className="space-y-2 mt-2">
         {filteredTransactions.length === 0 ? (
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400">Không có dữ liệu</p>
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+            Không có dữ liệu
+          </p>
         ) : (
           filteredTransactions.map((t, idx) => (
             <Card key={t.id || idx}>
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="text-2xl">{t.icon || "💸"}</div>
+                <div className="text-2xl">{(t as any).icon || "💸"}</div>
                 <div className="flex-1">
                   <p className="font-medium">
                     {t.note ||
-                      (transactions.income.includes(t)
-                        ? "Nhận tiền"
-                        : "Chi tiêu")}{" "}
+                      (transactions.income.includes(t) ? "Nhận tiền" : "Chi tiêu")}{" "}
                     {t.category && `(${t.category})`}
                   </p>
                   <p className="text-xs text-gray-500">

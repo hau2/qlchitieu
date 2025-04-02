@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,7 +17,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useRouter } from "next/navigation";
+import { useUserData } from "@/app/components/lib/useUserData";
+import { updateUserData } from "@/app/components/lib/firebaseUtils";
 
 const DEFAULT_INCOME_CATEGORIES = [
   "Lương",
@@ -34,22 +35,17 @@ export default function AddTransactionPage() {
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
-  const [date, setDate] = useState(
-    () => new Date().toISOString().split("T")[0]
-  );
+  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  const { user, financeData, saveFinanceData } = useUserData();
   const router = useRouter();
 
   useEffect(() => {
     const month = date.slice(0, 7);
-    const raw = localStorage.getItem("financeData");
-    if (raw) {
-      const data = JSON.parse(raw);
-      const keys = Object.keys(data?.budgets?.[month] || {});
-      setCategories(type === "spending" ? keys : DEFAULT_INCOME_CATEGORIES);
-    }
-  }, [date, type]);
+    const budgetCategories = Object.keys(financeData?.budgets?.[month] || {});
+    setCategories(type === "spending" ? budgetCategories : DEFAULT_INCOME_CATEGORIES);
+  }, [date, type, financeData]);
 
   const handleTabChange = (val: string) => {
     setType(val as "spending" | "income");
@@ -62,19 +58,14 @@ export default function AddTransactionPage() {
     return raw.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!user) return;
     if (!amount.replace(/\D/g, "") || !category) {
       setError("Vui lòng nhập số tiền và chọn danh mục.");
       return;
     }
 
-    const raw = localStorage.getItem("financeData");
-    const data = raw ? JSON.parse(raw) : { transactions: {} };
-
     const month = date.slice(0, 7);
-    if (!data.transactions[month])
-      data.transactions[month] = { spending: [], income: [] };
-
     const record = {
       id: Date.now().toString(),
       amount: parseInt(amount.replace(/\D/g, "")),
@@ -83,8 +74,13 @@ export default function AddTransactionPage() {
       note,
     };
 
-    data.transactions[month][type].push(record);
-    localStorage.setItem("financeData", JSON.stringify(data));
+    const newData = { ...financeData };
+    if (!newData.transactions) newData.transactions = {};
+    if (!newData.transactions[month]) newData.transactions[month] = { spending: [], income: [] };
+
+    newData.transactions[month][type].push(record);
+    await updateUserData(user.uid, newData);
+    saveFinanceData(newData);
     router.push("/transactions");
   };
 
@@ -92,11 +88,7 @@ export default function AddTransactionPage() {
     <div className="p-4">
       <h1 className="text-xl font-semibold mb-4">Ghi chép GD</h1>
 
-      <Tabs
-        defaultValue="spending"
-        onValueChange={handleTabChange}
-        className="w-full mb-4"
-      >
+      <Tabs defaultValue="spending" onValueChange={handleTabChange} className="w-full mb-4">
         <TabsList className="grid grid-cols-2 w-full bg-pink-100 dark:bg-pink-900">
           <TabsTrigger value="spending">💸 Chi tiêu</TabsTrigger>
           <TabsTrigger value="income">💰 Thu nhập</TabsTrigger>
@@ -105,9 +97,7 @@ export default function AddTransactionPage() {
 
       <div className="space-y-4">
         <div>
-          <label className="text-sm font-medium">
-            Số tiền <span className="text-red-500">*</span>
-          </label>
+          <label className="text-sm font-medium">Số tiền <span className="text-red-500">*</span></label>
           <Input
             type="text"
             placeholder="0đ"
@@ -117,15 +107,10 @@ export default function AddTransactionPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium">
-            Danh mục <span className="text-red-500">*</span>
-          </label>
+          <label className="text-sm font-medium">Danh mục <span className="text-red-500">*</span></label>
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start bg-background text-foreground border-border"
-              >
+              <Button variant="outline" className="w-full justify-start bg-background text-foreground border-border">
                 {category || "Chọn danh mục"}
               </Button>
             </PopoverTrigger>
@@ -154,20 +139,12 @@ export default function AddTransactionPage() {
 
         <div>
           <label className="text-sm font-medium">Ngày giao dịch</label>
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
 
         <div>
           <label className="text-sm font-medium">Ghi chú</label>
-          <Input
-            placeholder="Nhập ghi chú..."
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
+          <Input placeholder="Nhập ghi chú..." value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
 
         {error && <p className="text-red-500 text-sm -mt-2">{error}</p>}
