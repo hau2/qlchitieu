@@ -1,4 +1,4 @@
-// @typescript-eslint/no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -22,7 +22,7 @@ function isEmojiOnly(input: string): boolean {
 }
 
 export default function BudgetPage() {
-  const [month, setMonth] = useState(() => {
+  const [month] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });

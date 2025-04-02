@@ -19,7 +19,7 @@ export default function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t dark:border-zinc-700 z-50">
       <div className="relative flex justify-around items-end h-16 text-xs">
-        {items.map(({ href, icon: Icon, label, center }, index) => {
+        {items.map(({ href, icon: Icon, label, center }) => {
           if (center) {
             return (
               <Link

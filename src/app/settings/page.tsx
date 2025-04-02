@@ -1,4 +1,4 @@
-/* app/setting/page.tsx */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useRef, useState } from 'react';
@@ -45,7 +45,7 @@ export default function SettingPage() {
             alert('File không hợp lệ');
           }
         }
-      } catch (error) {
+      } catch (_error) {
         alert('Đọc file thất bại');
       } finally {
         setLoading(false);
