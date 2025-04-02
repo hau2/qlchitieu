@@ -44,8 +44,16 @@ export default function AddBudgetPage() {
     
     if (!category || !limit || !financeData) return;
 
-    const copy = { ...financeData };
-    if (!copy.budgets[month]) copy.budgets[month] = {};
+    let copy = { ...financeData };
+    if (!copy?.budgets?.[month]) {
+      copy = {
+        ...copy,
+        budgets: {
+          ...copy.budgets,
+          [month]: {}
+        }
+      }
+    };
     copy.budgets[month][category] = {
       limit: parseInt(limit.replace(/\D/g, '')),
       icon,
