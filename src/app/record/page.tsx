@@ -119,6 +119,7 @@ export default function AddTransactionPage() {
                 <CommandInput placeholder="Tìm danh mục..." />
                 <CommandList>
                   <CommandEmpty>Không có danh mục phù hợp</CommandEmpty>
+                  <CommandEmpty><Button onClick={() => router.push("/budget/add")}>Thêm Danh Mục ngay</Button></CommandEmpty>
                   {categories.map((cat) => (
                     <CommandItem
                       key={cat}

@@ -1,22 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { EyeIcon, Scissors, Car, Receipt, Gift } from 'lucide-react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { useUserData } from '@/app/components/lib/useUserData';
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { EyeIcon } from "lucide-react";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { useUserData } from "@/app/components/lib/useUserData";
 
-const COLORS = ['#ec4899', '#60a5fa', '#4ade80'];
-
-const iconMap = {
-  Scissors: <Scissors className="w-4 h-4 text-pink-500" />,
-  Car: <Car className="w-4 h-4 text-blue-500" />,
-  Receipt: <Receipt className="w-4 h-4 text-green-500" />,
-  Gift: <Gift className="w-4 h-4 text-purple-500" />,
-} as unknown as any;
+const COLORS = ["#ec4899", "#60a5fa", "#4ade80"];
 
 export default function DashboardOverview() {
   const { financeData, loading, user } = useUserData();
@@ -24,7 +17,7 @@ export default function DashboardOverview() {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, "0");
     return `${year}-${month}`;
   });
 
@@ -33,22 +26,39 @@ export default function DashboardOverview() {
   if (!user) return <p className="p-4">Vui lòng đăng nhập để xem báo cáo.</p>;
   if (loading) return <p className="p-4">Đang tải dữ liệu...</p>;
 
-  const current = financeData?.transactions?.[selectedMonth] || { spending: [], income: [] };
+  const current = financeData?.transactions?.[selectedMonth] || {
+    spending: [],
+    income: [],
+  };
 
-  const spendingData = current.spending.map((item: any) => ({
-    name: item.category,
-    value: item.amount,
-    icon: iconMap[item.icon] || null,
-  }));
+  function groupByCategory(items: any[]) {
+    const map = new Map<string, { name: string; value: number }>();
+    for (const item of items) {
+      if (!item.category) continue;
+      const key = item.category.trim().toLowerCase();
+      if (map.has(key)) {
+        map.get(key)!.value += item.amount;
+      } else {
+        map.set(key, {
+          name: item.category,
+          value: item.amount,
+        });
+      }
+    }
+    return Array.from(map.values());
+  }
+  
+  const spendingData = groupByCategory(current.spending);
+  const incomeData = groupByCategory(current.income);
 
-  const incomeData = current.income.map((item: any) => ({
-    name: item.category,
-    value: item.amount,
-    icon: iconMap[item.icon] || null,
-  }));
-
-  const totalSpending = spendingData.reduce((sum: number, item: any) => sum + item.value, 0);
-  const totalIncome = incomeData.reduce((sum: number, item: any) => sum + item.value, 0);
+  const totalSpending = spendingData.reduce(
+    (sum: number, item: any) => sum + item.value,
+    0
+  );
+  const totalIncome = incomeData.reduce(
+    (sum: number, item: any) => sum + item.value,
+    0
+  );
 
   const renderLegend = (data: any, total: number) => (
     <ul className="flex flex-col gap-2 text-sm mt-4">
@@ -71,7 +81,8 @@ export default function DashboardOverview() {
     </ul>
   );
 
-  const renderLabelPercent = ({ percent }: { percent: number }) => `${(percent * 100).toFixed(0)}%`;
+  const renderLabelPercent = ({ percent }: { percent: number }) =>
+    `${(percent * 100).toFixed(0)}%`;
 
   return (
     <div className="p-4 space-y-4">
@@ -99,9 +110,12 @@ export default function DashboardOverview() {
         <TabsContent value="spending">
           <Card>
             <CardContent className="p-4">
-              <p className="text-sm">Tháng {selectedMonth.split('-')[1]}/ {selectedMonth.split('-')[0]}</p>
+              <p className="text-sm">
+                Tháng {selectedMonth.split("-")[1]}/{" "}
+                {selectedMonth.split("-")[0]}
+              </p>
               <p className="text-2xl font-bold">
-                {viewAmount ? `${totalSpending.toLocaleString()}đ` : '•••••'}
+                {viewAmount ? `${totalSpending.toLocaleString()}đ` : "•••••"}
               </p>
               <div className="mt-4 h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -119,12 +133,16 @@ export default function DashboardOverview() {
                       label={renderLabelPercent}
                     >
                       {spendingData.map((_entry: any, index: number) => (
-                        <Cell key={`cell-s-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell
+                          key={`cell-s-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
                       ))}
                     </Pie>
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
+                {spendingData.length === 0 && <span>Không có dữ liệu</span>}
               </div>
               {renderLegend(spendingData, totalSpending)}
             </CardContent>
@@ -134,9 +152,12 @@ export default function DashboardOverview() {
         <TabsContent value="income">
           <Card>
             <CardContent className="p-4">
-              <p className="text-sm">Tháng {selectedMonth.split('-')[1]}/ {selectedMonth.split('-')[0]}</p>
+              <p className="text-sm">
+                Tháng {selectedMonth.split("-")[1]}/{" "}
+                {selectedMonth.split("-")[0]}
+              </p>
               <p className="text-2xl font-bold">
-                {viewAmount ? `${totalIncome.toLocaleString()}đ` : '•••••'}
+                {viewAmount ? `${totalIncome.toLocaleString()}đ` : "•••••"}
               </p>
               <div className="mt-4 h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -153,12 +174,16 @@ export default function DashboardOverview() {
                       label={renderLabelPercent}
                     >
                       {incomeData.map((_entry: any, index: number) => (
-                        <Cell key={`cell-i-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell
+                          key={`cell-i-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
                       ))}
                     </Pie>
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
+                {incomeData.length === 0 && <span>Không có dữ liệu</span>}
               </div>
               {renderLegend(incomeData, totalIncome)}
             </CardContent>
