@@ -15,7 +15,7 @@ const iconMap = {
   Car: <Car className="w-4 h-4 text-blue-500" />,
   Receipt: <Receipt className="w-4 h-4 text-green-500" />,
   Gift: <Gift className="w-4 h-4 text-purple-500" />
-};
+} as unknown as any;
 
 export default function DashboardOverview() {
   const [viewAmount, setViewAmount] = useState(true);
@@ -25,7 +25,7 @@ export default function DashboardOverview() {
     const month = String(now.getMonth() + 1).padStart(2, '0'); // getMonth() trả về 0-11
     return `${year}-${month}`;
   });
-  const [data, setData] = useState();
+  const [data, setData] = useState<any>();
 
   useEffect(() => {
     const stored = localStorage.getItem('financeData');
@@ -38,24 +38,24 @@ export default function DashboardOverview() {
 
   const current = data?.transactions?.[selectedMonth] || { spending: [], income: [] };
 
-  const spendingData = current.spending.map((item) => ({
+  const spendingData = current.spending.map((item: any) => ({
     name: item.category,
     value: item.amount,
     icon: iconMap[item.icon] || null
   }));
 
-  const incomeData = current.income.map((item) => ({
+  const incomeData = current.income.map((item: any) => ({
     name: item.category,
     value: item.amount,
     icon: iconMap[item.icon] || null
   }));
 
-  const totalSpending = spendingData.reduce((sum, item) => sum + item.value, 0);
-  const totalIncome = incomeData.reduce((sum, item) => sum + item.value, 0);
+  const totalSpending = spendingData.reduce((sum: number, item: any) => sum + item.value, 0);
+  const totalIncome = incomeData.reduce((sum: number, item: any) => sum + item.value, 0);
 
-  const renderLegend = (data, total) => (
+  const renderLegend = (data: any, total: number) => (
     <ul className="flex flex-col gap-2 text-sm mt-4">
-      {data.map((entry, index) => {
+      {data.map((entry: any, index: number) => {
         const percent = ((entry.value / total) * 100).toFixed(1);
         return (
           <li key={`legend-${index}`} className="flex items-center gap-2">
@@ -69,7 +69,7 @@ export default function DashboardOverview() {
     </ul>
   );
 
-  const renderLabelPercent = ({ percent }) => `${(percent * 100).toFixed(0)}%`;
+  const renderLabelPercent = ({ percent }: {percent: number}) => `${(percent * 100).toFixed(0)}%`;
 
   return (
     <div className="p-4 space-y-4">
@@ -116,7 +116,7 @@ export default function DashboardOverview() {
                       dataKey="value"
                       label={renderLabelPercent}
                     >
-                      {spendingData.map((entry, index) => (
+                      {spendingData.map((_entry: any, index: number) => (
                         <Cell key={`cell-s-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -150,7 +150,7 @@ export default function DashboardOverview() {
                       dataKey="value"
                       label={renderLabelPercent}
                     >
-                      {incomeData.map((entry, index) => (
+                      {incomeData.map((_entry: any, index: number) => (
                         <Cell key={`cell-i-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>

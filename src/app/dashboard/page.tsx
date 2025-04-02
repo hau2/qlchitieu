@@ -16,7 +16,7 @@ export default function DashboardOverview() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
-  const [data, setData] = useState({ transactions: {}, budgets: {} });
+  const [data, setData] = useState<any>({ transactions: {}, budgets: {} });
 
   useEffect(() => {
     const stored = localStorage.getItem('financeData');
@@ -36,7 +36,7 @@ export default function DashboardOverview() {
     } else {
       acc.push({ name: item.category, value: item.amount });
     }
-    return acc;
+    return acc as any;
   }, []);
 
   const incomeData = current.income.reduce((acc: any[], item: any) => {
@@ -49,8 +49,8 @@ export default function DashboardOverview() {
     return acc;
   }, []);
 
-  const totalSpending = spendingData.reduce((sum, item) => sum + item.value, 0);
-  const totalIncome = incomeData.reduce((sum, item) => sum + item.value, 0);
+  const totalSpending = spendingData.reduce((sum: number, item: any) => sum + item.value, 0);
+  const totalIncome = incomeData.reduce((sum: number, item: any) => sum + item.value, 0);
 
   const renderLegend = (data: any[], total: number) => (
     <ul className="flex flex-col gap-2 text-sm mt-4">
@@ -113,7 +113,7 @@ export default function DashboardOverview() {
                       dataKey="value"
                       label={renderLabelPercent}
                     >
-                      {spendingData.map((entry, index) => (
+                      {spendingData.map((_entry: any, index: number) => (
                         <Cell key={`cell-s-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -147,7 +147,7 @@ export default function DashboardOverview() {
                       dataKey="value"
                       label={renderLabelPercent}
                     >
-                      {incomeData.map((entry, index) => (
+                      {incomeData.map((_entry: any, index: number) => (
                         <Cell key={`cell-i-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>

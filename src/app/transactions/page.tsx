@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 
 export default function TransactionHistoryPage() {
-  const [data, setData] = useState({ transactions: {} });
+  const [data, setData] = useState<any>({ transactions: {} });
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
@@ -42,8 +42,8 @@ export default function TransactionHistoryPage() {
   );
 
   const summary = {
-    income: transactions.income.reduce((sum, t) => sum + t.amount, 0),
-    spending: transactions.spending.reduce((sum, t) => sum + t.amount, 0),
+    income: transactions.income.reduce((sum: number, t: any) => sum + t.amount, 0),
+    spending: transactions.spending.reduce((sum: number, t: any) => sum + t.amount, 0),
   };
 
   const net = summary.income - summary.spending;
@@ -55,12 +55,12 @@ export default function TransactionHistoryPage() {
   ).getDate();
 
   const dayTransactionType: Record<number, "income" | "spending" | "both"> = {};
-  transactions.income.forEach((t) => {
+  transactions.income.forEach((t: any) => {
     const day = getDate(parseISO(t.date));
     dayTransactionType[day] =
       dayTransactionType[day] === "spending" ? "both" : "income";
   });
-  transactions.spending.forEach((t) => {
+  transactions.spending.forEach((t: any) => {
     const day = getDate(parseISO(t.date));
     dayTransactionType[day] =
       dayTransactionType[day] === "income" ? "both" : "spending";
