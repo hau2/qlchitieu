@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import BottomNav from "@/app/components/ui/BottomNav";
 import Header from "@/app/components/ui/Header";
+import GlobalLoader from "@/app/components/ui/GlobalLoader";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,9 +33,8 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} bg-background text-foreground`}>
         <Header />
-
+        <GlobalLoader />
         <main className="pb-20">{children}</main>
-
         <BottomNav />
       </body>
     </html>
